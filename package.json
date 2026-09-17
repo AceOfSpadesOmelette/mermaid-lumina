@@ -1,0 +1,27 @@
+{
+	"name": "mermaid-lumina",
+	"version": "1.0.4",
+	"description": "Mermaid Lumina: zoomable Mermaid lightbox with a white canvas for Obsidian.",
+	"main": "main.js",
+	"type": "module",
+	"scripts": {
+		"dev": "node esbuild.config.mjs",
+		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production"
+	},
+	"keywords": [
+		"obsidian",
+		"plugin",
+		"mermaid",
+		"lightbox",
+		"lumina"
+	],
+	"license": "MIT",
+	"devDependencies": {
+		"@types/node": "^22.15.17",
+		"builtin-modules": "3.3.0",
+		"esbuild": "0.25.5",
+		"obsidian": "latest",
+		"tslib": "2.8.1",
+		"typescript": "^5.8.3"
+	}
+}

@@ -1,0 +1,270 @@
+/* Mermaid Lumina — lightbox overlay */
+
+body.mermaid-lumina-open {
+	overflow: hidden;
+	touch-action: none;
+}
+
+.mermaid-lumina-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 10000;
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	justify-content: stretch;
+	box-sizing: border-box;
+	padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0)
+		env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+	background: rgba(8, 10, 14, 0.92);
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+	opacity: 0;
+	transition: opacity 0.2s ease-out;
+	touch-action: none;
+	overscroll-behavior: none;
+	user-select: none;
+	-webkit-user-select: none;
+}
+
+.mermaid-lumina-overlay.is-active {
+	opacity: 1;
+}
+
+.mermaid-lumina-hint {
+	flex: 0 0 auto;
+	align-self: center;
+	margin-top: 12px;
+	padding: 4px 12px;
+	font-size: 12px;
+	letter-spacing: 0.02em;
+	color: rgba(255, 255, 255, 0.45);
+	pointer-events: none;
+	opacity: 0;
+	animation: mermaid-lumina-hint 3.2s ease-out forwards;
+}
+
+@keyframes mermaid-lumina-hint {
+	0% {
+		opacity: 0;
+	}
+	12% {
+		opacity: 1;
+	}
+	70% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+	}
+}
+
+.mermaid-lumina-stage {
+	position: relative;
+	flex: 1 1 auto;
+	min-height: 0;
+	width: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+	cursor: grab;
+	touch-action: none;
+	/* Leave room for floating controls above system nav */
+	padding-bottom: 72px;
+	box-sizing: border-box;
+}
+
+.mermaid-lumina-stage.is-dragging {
+	cursor: grabbing;
+}
+
+/* Always-white diagram panel — hug SVG content (no forced tall box) */
+.mermaid-lumina-canvas {
+	position: relative;
+	box-sizing: border-box;
+	width: max-content;
+	height: max-content;
+	max-width: none;
+	background: #ffffff;
+	color: #333333;
+	border-radius: 12px;
+	padding: 16px;
+	box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+	transform-origin: center center;
+	will-change: transform;
+	transition: none;
+}
+
+.mermaid-lumina-canvas svg {
+	display: block;
+	/* Explicit size set in JS; never stretch to fill a mismatched box */
+	max-width: none;
+	max-height: none;
+	background: #ffffff;
+	color: #333333;
+}
+
+.mermaid-lumina-canvas svg foreignObject,
+.mermaid-lumina-canvas svg foreignObject div,
+.mermaid-lumina-canvas svg foreignObject span,
+.mermaid-lumina-canvas svg foreignObject p {
+	color: inherit;
+}
+
+.mermaid-lumina-controls {
+	position: absolute;
+	left: 50%;
+	bottom: calc(16px + max(24px, env(safe-area-inset-bottom, 0px)));
+	transform: translateX(-50%);
+	z-index: 2;
+	display: flex;
+	flex-wrap: nowrap;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	width: auto;
+	max-width: calc(100% - 24px);
+	padding: 10px 14px;
+	border-radius: 14px;
+	background: rgba(22, 24, 28, 0.94);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	box-shadow: 0 10px 36px rgba(0, 0, 0, 0.4);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+	touch-action: manipulation;
+}
+
+.mermaid-lumina-btn {
+	display: inline-flex;
+	flex: 0 0 auto;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	padding: 0;
+	margin: 0;
+	border-radius: 10px;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	background: rgba(255, 255, 255, 0.08);
+	color: #e8e8e8;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.mermaid-lumina-btn:hover,
+.mermaid-lumina-btn:focus-visible {
+	background: rgba(255, 255, 255, 0.16);
+	color: #ffffff;
+}
+
+.mermaid-lumina-btn:active {
+	background: rgba(255, 255, 255, 0.12);
+}
+
+.mermaid-lumina-btn svg {
+	width: 20px;
+	height: 20px;
+}
+
+.mermaid-lumina-close {
+	margin-left: 4px;
+	background: rgba(220, 53, 69, 0.22);
+	border-color: rgba(220, 53, 69, 0.35);
+	color: #ff8a96;
+}
+
+.mermaid-lumina-close:hover,
+.mermaid-lumina-close:focus-visible {
+	background: rgba(220, 53, 69, 0.4);
+	color: #ffb0b8;
+}
+
+.mermaid-lumina-zoom-input {
+	box-sizing: border-box;
+	flex: 0 0 76px;
+	width: 76px;
+	min-width: 76px;
+	max-width: 76px;
+	height: 36px;
+	padding: 0 8px;
+	margin: 0;
+	border-radius: 8px;
+	border: 1px solid rgba(255, 255, 255, 0.14);
+	background: rgba(255, 255, 255, 0.06);
+	text-align: center;
+	font-size: 13px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	color: #e0e0e0;
+	outline: none;
+	-webkit-appearance: none;
+	appearance: none;
+}
+
+.mermaid-lumina-zoom-input:hover {
+	background: rgba(255, 255, 255, 0.1);
+}
+
+.mermaid-lumina-zoom-input:focus {
+	border-color: rgba(255, 255, 255, 0.35);
+	background: rgba(255, 255, 255, 0.12);
+	color: #ffffff;
+}
+
+/* Hide number spinners if type is ever switched to number */
+.mermaid-lumina-zoom-input::-webkit-outer-spin-button,
+.mermaid-lumina-zoom-input::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
+/* Clickable affordance in notes */
+.markdown-preview-view .mermaid,
+.markdown-reading-view .mermaid,
+.markdown-source-view .mermaid {
+	cursor: zoom-in;
+}
+
+@media (max-width: 768px) {
+	.mermaid-lumina-hint {
+		font-size: 11px;
+		margin-top: 8px;
+	}
+
+	.mermaid-lumina-stage {
+		/* Controls (~56px) + gap + Android system nav (~48–56px) */
+		padding-bottom: 120px;
+	}
+
+	.mermaid-lumina-canvas {
+		padding: 12px;
+		border-radius: 10px;
+	}
+
+	.mermaid-lumina-controls {
+		/* Android WebView often reports safe-area as 0 — enforce clearance */
+		bottom: calc(12px + max(56px, env(safe-area-inset-bottom, 0px)));
+		padding: 8px 10px;
+		gap: 6px;
+		width: auto;
+		max-width: calc(100% - 24px);
+		justify-content: center;
+	}
+
+	.mermaid-lumina-btn {
+		flex: 0 0 auto;
+		width: 44px;
+		height: 44px;
+	}
+
+	.mermaid-lumina-zoom-input {
+		flex: 0 0 72px;
+		width: 72px;
+		min-width: 72px;
+		max-width: 72px;
+		height: 36px;
+		font-size: 12px;
+	}
+}

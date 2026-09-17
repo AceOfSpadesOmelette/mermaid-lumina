@@ -1,0 +1,9 @@
+{
+	"id": "mermaid-lumina",
+	"name": "Mermaid Lumina",
+	"version": "1.0.4",
+	"minAppVersion": "1.5.0",
+	"description": "Open Mermaid diagrams in a zoomable lightbox with a bright white canvas — works on desktop and mobile.",
+	"author": "AceOfSpadesOmelette",
+	"isDesktopOnly": false
+}
