@@ -1,6 +1,6 @@
 {
 	"name": "mermaid-lumina",
-	"version": "1.0.4",
+	"version": "1.0.5",
 	"description": "Mermaid Lumina: zoomable Mermaid lightbox with a white canvas for Obsidian.",
 	"main": "main.js",
 	"type": "module",

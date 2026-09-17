@@ -238,6 +238,7 @@ export class MermaidLuminaLightbox {
 			}
 		});
 		input.addEventListener("keyup", (e) => e.stopPropagation());
+		input.addEventListener("input", () => this.autosizeZoomInput());
 		input.addEventListener("pointerdown", (e) => e.stopPropagation());
 		input.addEventListener("click", (e) => e.stopPropagation());
 		input.addEventListener("focus", () => {
@@ -246,6 +247,7 @@ export class MermaidLuminaLightbox {
 		input.addEventListener("blur", () => apply());
 		input.addEventListener("change", () => apply());
 
+		this.autosizeZoomInput(input);
 		return input;
 	}
 
@@ -264,8 +266,18 @@ export class MermaidLuminaLightbox {
 	private syncZoomInput(): void {
 		if (!this.zoomInput) return;
 		// Don't clobber while the user is mid-edit
-		if (document.activeElement === this.zoomInput) return;
-		this.zoomInput.value = `${Math.round(this.state.scale * 100)}%`;
+		if (document.activeElement !== this.zoomInput) {
+			this.zoomInput.value = `${Math.round(this.state.scale * 100)}%`;
+		}
+		this.autosizeZoomInput();
+	}
+
+	/** Grow the zoom field so values like "100%" / "800%" are never clipped. */
+	private autosizeZoomInput(input: HTMLInputElement | null = this.zoomInput): void {
+		if (!input) return;
+		const sample = input.value || "100%";
+		const chars = Math.max(5, sample.length + 1);
+		input.style.width = `${chars}ch`;
 	}
 
 	private iconButton(

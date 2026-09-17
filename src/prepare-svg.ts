@@ -2,6 +2,8 @@
  * Prepare a Mermaid SVG for lightbox display: white canvas + readable light colors.
  */
 
+/** Paint/text props that are safe to bake. Skip font-size/family: computed
+ *  values are CSS pixels from the in-note scale and clip labels in the lightbox. */
 const STYLE_PROPS = [
 	"fill",
 	"stroke",
@@ -13,18 +15,14 @@ const STYLE_PROPS = [
 	"fill-opacity",
 	"stroke-opacity",
 	"color",
-	"font-family",
-	"font-size",
 	"font-weight",
 	"font-style",
 	"text-anchor",
 	"dominant-baseline",
-	"letter-spacing",
 ] as const;
 
 /** CSS custom properties Mermaid / Obsidian commonly use for diagram colors. */
 const LIGHT_THEME_VARS: Record<string, string> = {
-	"--mermaid-font-family": "var(--font-text, ui-sans-serif, system-ui, sans-serif)",
 	"--fg": "#333333",
 	"--bg": "#ffffff",
 	"--primary-color": "#333333",
@@ -106,11 +104,9 @@ export function cloneWithInlinedStyles(source: SVGSVGElement): SVGSVGElement {
 			}
 		}
 
-		// foreignObject HTML labels
+		// foreignObject HTML labels — keep original font-size/family (user units)
 		if (src instanceof HTMLElement && dst instanceof HTMLElement) {
 			dst.style.color = cs.color;
-			dst.style.fontFamily = cs.fontFamily;
-			dst.style.fontSize = cs.fontSize;
 			dst.style.fontWeight = cs.fontWeight;
 			dst.style.backgroundColor = cs.backgroundColor;
 		}
@@ -198,12 +194,89 @@ export function normalizeSvgSizing(
 	return { width, height };
 }
 
+const LABEL_PAD = 6;
+
 /**
- * After the SVG is in the DOM, re-measure getBBox and retighten sizing.
+ * Widen node boxes whose labels overflow (Android font metrics / leftover clip).
+ */
+export function expandClippedLabels(svg: SVGSVGElement): void {
+	for (const fo of Array.from(svg.querySelectorAll("foreignObject"))) {
+		const foEl = fo as SVGForeignObjectElement;
+		const inner = foEl.querySelector("div, span, p") as HTMLElement | null;
+		if (!inner) continue;
+		const needW = Math.max(inner.scrollWidth, inner.offsetWidth, inner.clientWidth);
+		const needH = Math.max(inner.scrollHeight, inner.offsetHeight, inner.clientHeight);
+		const curW =
+			parseFloat(foEl.getAttribute("width") || "") || foEl.width.baseVal.value;
+		const curH =
+			parseFloat(foEl.getAttribute("height") || "") || foEl.height.baseVal.value;
+		const extraW = Math.max(0, needW + LABEL_PAD - curW);
+		const extraH = Math.max(0, needH + LABEL_PAD - curH);
+		if (extraW < 0.5 && extraH < 0.5) continue;
+		foEl.setAttribute("width", String(curW + extraW));
+		foEl.setAttribute("height", String(curH + extraH));
+		growParentNodeBox(foEl, extraW, extraH);
+	}
+
+	for (const text of Array.from(svg.querySelectorAll("text"))) {
+		const textEl = text as SVGTextElement;
+		try {
+			const tb = textEl.getBBox();
+			if (tb.width <= 0) continue;
+			const host =
+				textEl.closest("g.node, g.cluster, g.actor") ?? textEl.parentElement;
+			if (!host) continue;
+			const rect = host.querySelector(":scope > rect");
+			if (!(rect instanceof SVGRectElement)) continue;
+			const rx = parseFloat(rect.getAttribute("x") || "0");
+			const ry = parseFloat(rect.getAttribute("y") || "0");
+			const rw = parseFloat(rect.getAttribute("width") || "0");
+			const rh = parseFloat(rect.getAttribute("height") || "0");
+			if (rw <= 0 || rh <= 0) continue;
+			const extraW = Math.max(
+				0,
+				tb.x + tb.width + LABEL_PAD - (rx + rw),
+				rx + LABEL_PAD - tb.x,
+			);
+			const extraH = Math.max(
+				0,
+				tb.y + tb.height + LABEL_PAD - (ry + rh),
+				ry + LABEL_PAD - tb.y,
+			);
+			if (extraW < 0.5 && extraH < 0.5) continue;
+			rect.setAttribute("width", String(rw + extraW));
+			rect.setAttribute("x", String(rx - extraW / 2));
+			rect.setAttribute("height", String(rh + extraH));
+			rect.setAttribute("y", String(ry - extraH / 2));
+		} catch {
+			/* getBBox throws if not rendered */
+		}
+	}
+}
+
+function growParentNodeBox(from: Element, extraW: number, extraH: number): void {
+	const node = from.closest("g.node, g.cluster, g.actor, g.statediagram-state");
+	if (!node) return;
+	const rect = node.querySelector(":scope > rect");
+	if (!(rect instanceof SVGRectElement)) return;
+	const x = parseFloat(rect.getAttribute("x") || "0");
+	const y = parseFloat(rect.getAttribute("y") || "0");
+	const w = parseFloat(rect.getAttribute("width") || "0");
+	const h = parseFloat(rect.getAttribute("height") || "0");
+	if (w <= 0) return;
+	rect.setAttribute("width", String(w + extraW));
+	rect.setAttribute("x", String(x - extraW / 2));
+	rect.setAttribute("height", String(h + extraH));
+	rect.setAttribute("y", String(y - extraH / 2));
+}
+
+/**
+ * After the SVG is in the DOM, expand clipped labels then retighten sizing.
  */
 export function retightenSvgInDom(
 	svg: SVGSVGElement,
 ): { width: number; height: number } {
+	expandClippedLabels(svg);
 	return normalizeSvgSizing(svg, svg);
 }
 
@@ -304,9 +377,12 @@ async function renderLightMermaid(
 		startOnLoad: false,
 		securityLevel: "loose",
 		theme: "default",
+		flowchart: { htmlLabels: true, useMaxWidth: false, wrappingWidth: 9999 },
 		themeVariables: {
 			darkMode: false,
 			background: "#ffffff",
+			fontFamily: "trebuchet ms, verdana, arial, sans-serif",
+			fontSize: "16px",
 			primaryTextColor: "#333333",
 			secondaryTextColor: "#333333",
 			tertiaryTextColor: "#333333",

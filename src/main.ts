@@ -1,4 +1,4 @@
-import { Plugin } from "obsidian";
+import { MarkdownPostProcessorContext, Plugin } from "obsidian";
 import { MermaidLuminaLightbox } from "./lightbox";
 
 const VIEW_SELECTOR =
@@ -10,9 +10,8 @@ export default class MermaidLuminaPlugin extends Plugin {
 	private lightbox = new MermaidLuminaLightbox();
 
 	onload(): void {
-		// Preserve Mermaid source on rendered blocks when still available.
-		this.registerMarkdownPostProcessor((el) => {
-			this.annotateMermaidSources(el);
+		this.registerMarkdownPostProcessor((el, ctx) => {
+			this.annotateMermaidSources(el, ctx);
 		});
 
 		this.registerDomEvent(document, "click", (evt: MouseEvent) => {
@@ -24,21 +23,22 @@ export default class MermaidLuminaPlugin extends Plugin {
 		this.lightbox.close();
 	}
 
-	private annotateMermaidSources(root: HTMLElement): void {
+	private annotateMermaidSources(
+		root: HTMLElement,
+		ctx?: MarkdownPostProcessorContext,
+	): void {
+		const sectionSource = mermaidSourceFromSection(ctx?.getSectionInfo(root)?.text);
 		const blocks = root.querySelectorAll(".mermaid");
 		for (const block of Array.from(blocks)) {
 			const el = block as HTMLElement;
 			if (el.getAttribute(SOURCE_ATTR)) continue;
 
-			// Some renderers leave the source as a text node beside the SVG
-			let source = "";
-			for (const node of Array.from(el.childNodes)) {
-				if (node.nodeType === Node.TEXT_NODE) {
-					source += node.textContent ?? "";
-				}
-			}
-			source = source.trim();
-			if (source && !source.startsWith("<")) {
+			const source =
+				sectionSource ??
+				mermaidSourceFromSection(ctx?.getSectionInfo(el)?.text) ??
+				sourceFromDom(el);
+
+			if (source) {
 				el.setAttribute(SOURCE_ATTR, source);
 				el.dataset.mermaidSource = source;
 			}
@@ -68,4 +68,26 @@ export default class MermaidLuminaPlugin extends Plugin {
 	private isInNoteView(el: HTMLElement): boolean {
 		return Boolean(el.closest(VIEW_SELECTOR));
 	}
+}
+
+/** Pull mermaid code from a fenced ```mermaid section. */
+function mermaidSourceFromSection(raw: string | undefined | null): string | null {
+	if (!raw) return null;
+	const text = raw.trim();
+	if (!text) return null;
+	const fence = text.match(/^```\s*mermaid[^\n]*\r?\n([\s\S]*?)(?:\r?\n```)?\s*$/i);
+	if (fence?.[1]) return fence[1].trim() || null;
+	return null;
+}
+
+function sourceFromDom(el: HTMLElement): string | null {
+	let source = "";
+	for (const node of Array.from(el.childNodes)) {
+		if (node.nodeType === Node.TEXT_NODE) {
+			source += node.textContent ?? "";
+		}
+	}
+	source = source.trim();
+	if (source && !source.startsWith("<")) return source;
+	return null;
 }

@@ -110,6 +110,14 @@ body.mermaid-lumina-open {
 .mermaid-lumina-canvas svg foreignObject span,
 .mermaid-lumina-canvas svg foreignObject p {
 	color: inherit;
+	overflow: visible !important;
+}
+
+.mermaid-lumina-canvas .nodeLabel,
+.mermaid-lumina-canvas .edgeLabel,
+.mermaid-lumina-canvas .label,
+.mermaid-lumina-canvas .labelBkg {
+	overflow: visible !important;
 }
 
 .mermaid-lumina-controls {
@@ -163,8 +171,8 @@ body.mermaid-lumina-open {
 }
 
 .mermaid-lumina-btn svg {
-	width: 20px;
-	height: 20px;
+	width: var(--icon-size, 20px);
+	height: var(--icon-size, 20px);
 }
 
 .mermaid-lumina-close {
@@ -181,13 +189,13 @@ body.mermaid-lumina-open {
 }
 
 .mermaid-lumina-zoom-input {
-	box-sizing: border-box;
-	flex: 0 0 76px;
-	width: 76px;
-	min-width: 76px;
-	max-width: 76px;
+	box-sizing: content-box;
+	flex: 0 0 auto;
+	width: 5ch;
+	min-width: 5ch;
+	max-width: none;
 	height: 36px;
-	padding: 0 8px;
+	padding: 0 10px;
 	margin: 0;
 	border-radius: 8px;
 	border: 1px solid rgba(255, 255, 255, 0.14);
@@ -199,6 +207,8 @@ body.mermaid-lumina-open {
 	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 	color: #e0e0e0;
 	outline: none;
+	overflow: visible;
+	field-sizing: content;
 	-webkit-appearance: none;
 	appearance: none;
 }
@@ -227,6 +237,65 @@ body.mermaid-lumina-open {
 	cursor: zoom-in;
 }
 
+/* Phone / coarse pointer: larger hit targets than desktop mouse chrome */
+.is-mobile .mermaid-lumina-stage {
+	padding-bottom: 120px;
+}
+
+.is-mobile .mermaid-lumina-controls {
+	bottom: calc(12px + max(56px, env(safe-area-inset-bottom, 0px)));
+	padding: 8px 12px;
+	gap: 8px;
+}
+
+.is-mobile .mermaid-lumina-btn {
+	width: 52px;
+	height: 52px;
+}
+
+.is-mobile .mermaid-lumina-btn svg {
+	width: 24px;
+	height: 24px;
+}
+
+.is-mobile .mermaid-lumina-zoom-input {
+	height: 44px;
+	font-size: 15px;
+	min-width: 5ch;
+	padding: 0 12px;
+}
+
+/* Tablet (Tab S9 etc.): match system taskbar scale */
+.is-tablet .mermaid-lumina-stage {
+	padding-bottom: 148px;
+}
+
+.is-tablet .mermaid-lumina-controls {
+	bottom: calc(16px + max(56px, env(safe-area-inset-bottom, 0px)));
+	padding: 12px 16px;
+	gap: 12px;
+	border-radius: 18px;
+}
+
+.is-tablet .mermaid-lumina-btn {
+	width: 64px;
+	height: 64px;
+	border-radius: 14px;
+}
+
+.is-tablet .mermaid-lumina-btn svg {
+	width: 32px;
+	height: 32px;
+}
+
+.is-tablet .mermaid-lumina-zoom-input {
+	height: 48px;
+	font-size: 18px;
+	min-width: 5ch;
+	padding: 0 14px;
+	border-radius: 12px;
+}
+
 @media (max-width: 768px) {
 	.mermaid-lumina-hint {
 		font-size: 11px;
@@ -234,7 +303,6 @@ body.mermaid-lumina-open {
 	}
 
 	.mermaid-lumina-stage {
-		/* Controls (~56px) + gap + Android system nav (~48–56px) */
 		padding-bottom: 120px;
 	}
 
@@ -244,7 +312,6 @@ body.mermaid-lumina-open {
 	}
 
 	.mermaid-lumina-controls {
-		/* Android WebView often reports safe-area as 0 — enforce clearance */
 		bottom: calc(12px + max(56px, env(safe-area-inset-bottom, 0px)));
 		padding: 8px 10px;
 		gap: 6px;
@@ -253,18 +320,8 @@ body.mermaid-lumina-open {
 		justify-content: center;
 	}
 
-	.mermaid-lumina-btn {
-		flex: 0 0 auto;
-		width: 44px;
-		height: 44px;
-	}
-
 	.mermaid-lumina-zoom-input {
-		flex: 0 0 72px;
-		width: 72px;
-		min-width: 72px;
-		max-width: 72px;
-		height: 36px;
-		font-size: 12px;
+		height: 40px;
+		font-size: 14px;
 	}
 }
