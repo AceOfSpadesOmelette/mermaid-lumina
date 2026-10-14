@@ -230,11 +230,63 @@ body.mermaid-lumina-open {
 	margin: 0;
 }
 
-/* Clickable affordance in notes */
+/* Clickable affordance in Reading view */
 .markdown-preview-view .mermaid,
-.markdown-reading-view .mermaid,
-.markdown-source-view .mermaid {
+.markdown-reading-view .mermaid {
 	cursor: zoom-in;
+}
+
+/* Live Preview: zoom cursor when setting is enabled */
+body.mermaid-lumina-live-preview .markdown-source-view .mermaid {
+	cursor: zoom-in;
+}
+
+/* Hosts for the on-diagram toolbar (Live Preview embed chrome) */
+.cm-embed-block.cm-embed-block:has(> .mermaid-lumina-toolbar),
+.cm-preview-code-block:has(> .mermaid-lumina-toolbar),
+.mermaid:has(> .mermaid-lumina-toolbar) {
+	position: relative;
+}
+
+/* Top-right magnify + source-edit icons */
+.mermaid-lumina-toolbar {
+	position: absolute;
+	top: var(--size-2-2, 6px);
+	inset-inline-end: var(--size-2-2, 6px);
+	z-index: 5;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--size-2-1, 4px);
+	pointer-events: auto;
+}
+
+.mermaid-lumina-zoom-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	margin: 0;
+	border: none;
+	background: transparent;
+	color: var(--text-muted);
+	cursor: pointer;
+	opacity: 0.7;
+}
+
+.mermaid-lumina-zoom-btn:hover,
+.mermaid-lumina-zoom-btn:focus-visible {
+	color: var(--text-normal);
+	opacity: 1;
+}
+
+/* Keep Obsidian's edit button in the flex row (not absolutely pinned elsewhere) */
+.mermaid-lumina-toolbar .edit-block-button {
+	position: static !important;
+	top: auto !important;
+	right: auto !important;
+	inset: auto !important;
+	opacity: 1;
 }
 
 /* Phone / coarse pointer: larger hit targets than desktop mouse chrome */

@@ -1,0 +1,57 @@
+name: Release Obsidian plugin
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Build plugin
+        run: |
+          npm ci
+          npm run build
+          npm run test:ci
+
+      - name: Check for optional styles
+        id: styles
+        run: |
+          if [ -f styles.css ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          assets=(main.js manifest.json)
+          if [ "${{ steps.styles.outputs.exists }}" = "true" ]; then
+            assets+=(styles.css)
+          fi
+          # Pagina ships vendored woff2 decoder assets
+          if [ -f woff2.cjs ]; then
+            assets+=(woff2.cjs)
+          fi
+          if [ -f woff2.wasm ]; then
+            assets+=(woff2.wasm)
+          fi
+          gh release create "$tag" \
+            --title="$tag" \
+            --generate-notes \
+            --draft \
+            "${assets[@]}"

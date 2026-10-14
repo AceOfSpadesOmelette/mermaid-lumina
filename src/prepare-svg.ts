@@ -395,6 +395,8 @@ async function renderLightMermaid(
 		startOnLoad: false,
 		securityLevel: "loose",
 		theme: "default",
+		// Keep KaTeX CSS math ($$…$$) when re-rendering; matches vault mermaid-math-config.
+		forceLegacyMathML: true,
 		flowchart: { htmlLabels: true, ...NO_MAX_WIDTH },
 		sequence: { ...NO_MAX_WIDTH },
 		gantt: { ...NO_MAX_WIDTH },
