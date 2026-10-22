@@ -19,6 +19,8 @@ Open Mermaid diagrams in a zoomable lightbox with a bright white canvas. Works i
    `<vault>/.obsidian/plugins/mermaid-lumina/`
 2. Enable **Mermaid Lumina** in Obsidian Settings → Community plugins
 
+**Export settings** and **Import settings** in the plugin settings save or restore the configuration as `mermaid-lumina-settings.json`.
+
 
 
 ## Develop

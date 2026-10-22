@@ -7,6 +7,12 @@ import {
 	setIcon,
 } from "obsidian";
 import { MermaidLuminaLightbox } from "./lightbox";
+import { applyImportedSettings, mountSettingsFileControls } from "./settings-io";
+import {
+	DEFAULT_SETTINGS,
+	normalizeSettings,
+	type MermaidLuminaSettings,
+} from "./settings";
 
 /** Reading view / page preview / embeds. */
 const READING_SELECTOR = ".markdown-preview-view, .markdown-reading-view";
@@ -16,14 +22,6 @@ const ZOOM_BTN_CLASS = "mermaid-lumina-zoom-btn";
 const TOOLBAR_CLASS = "mermaid-lumina-toolbar";
 const LIVE_PREVIEW_CLASS = "mermaid-lumina-live-preview";
 const EMBED_HOST_SELECTOR = ".cm-embed-block, .cm-preview-code-block";
-
-interface MermaidLuminaSettings {
-	enableLivePreview: boolean;
-}
-
-const DEFAULT_SETTINGS: MermaidLuminaSettings = {
-	enableLivePreview: true,
-};
 
 export default class MermaidLuminaPlugin extends Plugin {
 	settings: MermaidLuminaSettings = { ...DEFAULT_SETTINGS };
@@ -73,7 +71,7 @@ export default class MermaidLuminaPlugin extends Plugin {
 	}
 
 	async loadSettings(): Promise<void> {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		this.settings = normalizeSettings(await this.loadData());
 	}
 
 	async saveSettings(): Promise<void> {
@@ -269,6 +267,18 @@ class MermaidLuminaSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					}),
 			);
+
+		mountSettingsFileControls(containerEl, {
+			filename: "mermaid-lumina-settings.json",
+			pluginName: "Mermaid Lumina",
+			getSettings: () => this.plugin.settings,
+			normalize: normalizeSettings,
+			onImported: async (next) => {
+				applyImportedSettings(this.plugin.settings, next);
+				await this.plugin.saveSettings();
+				this.display();
+			},
+		});
 	}
 }
 
