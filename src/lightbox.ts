@@ -42,20 +42,22 @@ export class MermaidLuminaLightbox {
 		this.naturalWidth = prepared.width;
 		this.naturalHeight = prepared.height;
 
-		this.overlay = document.createElement("div");
-		this.overlay.className = "mermaid-lumina-overlay";
-		this.overlay.setAttribute("role", "dialog");
-		this.overlay.setAttribute("aria-modal", "true");
-		this.overlay.setAttribute("aria-label", "Mermaid diagram lightbox");
+		this.overlay = createDiv({
+			cls: "mermaid-lumina-overlay",
+			attr: {
+				role: "dialog",
+				"aria-modal": "true",
+				"aria-label": "Mermaid diagram lightbox",
+			},
+		});
 
-		const hint = document.createElement("div");
-		hint.className = "mermaid-lumina-hint";
-		hint.textContent =
-			"Pinch or scroll to zoom · Drag to pan · Click outside to close";
+		const hint = createDiv({
+			cls: "mermaid-lumina-hint",
+			text: "Pinch or scroll to zoom · Drag to pan · Click outside to close",
+		});
 		this.overlay.appendChild(hint);
 
-		this.stage = document.createElement("div");
-		this.stage.className = "mermaid-lumina-stage";
+		this.stage = createDiv({ cls: "mermaid-lumina-stage" });
 
 		const panel = wrapInWhiteCanvas(prepared.svg);
 		this.content = panel;
@@ -72,8 +74,8 @@ export class MermaidLuminaLightbox {
 		this.keyHandler = (e: KeyboardEvent) => {
 			if (!this.opened) return;
 			const typing =
-				e.target instanceof HTMLInputElement ||
-				e.target instanceof HTMLTextAreaElement;
+				e.targetNode?.instanceOf(HTMLInputElement) ||
+				e.targetNode?.instanceOf(HTMLTextAreaElement);
 
 			if (e.key === "Escape") {
 				e.preventDefault();
@@ -97,7 +99,7 @@ export class MermaidLuminaLightbox {
 		};
 		document.addEventListener("keydown", this.keyHandler);
 
-		requestAnimationFrame(() => {
+		window.requestAnimationFrame(() => {
 			this.overlay?.classList.add("is-active");
 			this.retightenAndFit();
 			this.bindGestures();
@@ -114,8 +116,7 @@ export class MermaidLuminaLightbox {
 			this.naturalHeight = size.height;
 		}
 		// Clear any previous forced box so the canvas wraps the SVG
-		this.content.style.width = "";
-		this.content.style.height = "";
+		this.content.setCssStyles({ width: "", height: "" });
 		this.fitToScreen();
 	}
 
@@ -170,8 +171,8 @@ export class MermaidLuminaLightbox {
 		};
 
 		const onClick = (e: MouseEvent) => {
-			const target = e.target;
-			if (!(target instanceof Element)) return;
+			const target = e.targetNode;
+			if (!target?.instanceOf(Element)) return;
 			if (target.closest(".mermaid-lumina-canvas")) return;
 			if (target.closest(".mermaid-lumina-controls")) return;
 			if (this.pointerMoved) return;
@@ -184,8 +185,7 @@ export class MermaidLuminaLightbox {
 	}
 
 	private buildControls(): HTMLElement {
-		const bar = document.createElement("div");
-		bar.className = "mermaid-lumina-controls";
+		const bar = createDiv({ cls: "mermaid-lumina-controls" });
 
 		const zoomOut = this.iconButton("zoom-out", "Zoom out", () =>
 			this.zoomBy(-STEP),
@@ -212,14 +212,13 @@ export class MermaidLuminaLightbox {
 	}
 
 	private buildZoomInput(): HTMLInputElement {
-		const input = document.createElement("input");
-		input.type = "text";
-		input.inputMode = "numeric";
-		input.className = "mermaid-lumina-zoom-input";
-		input.value = "100%";
-		input.title = "Zoom percentage";
-		input.setAttribute("aria-label", "Zoom percentage");
-		input.autocomplete = "off";
+		const input = createEl("input", {
+			type: "text",
+			cls: "mermaid-lumina-zoom-input",
+			title: "Zoom percentage",
+			value: "100%",
+			attr: { "aria-label": "Zoom percentage", inputmode: "numeric", autocomplete: "off" },
+		});
 		input.spellcheck = false;
 
 		const apply = () => this.applyZoomInput();
@@ -277,7 +276,7 @@ export class MermaidLuminaLightbox {
 		if (!input) return;
 		const sample = input.value || "100%";
 		const chars = Math.max(5, sample.length + 1);
-		input.style.width = `${chars}ch`;
+		input.setCssStyles({ width: `${chars}ch` });
 	}
 
 	private iconButton(
@@ -285,11 +284,12 @@ export class MermaidLuminaLightbox {
 		title: string,
 		onClick: () => void,
 	): HTMLButtonElement {
-		const btn = document.createElement("button");
-		btn.type = "button";
-		btn.className = "mermaid-lumina-btn";
-		btn.title = title;
-		btn.setAttribute("aria-label", title);
+		const btn = createEl("button", {
+			type: "button",
+			cls: "mermaid-lumina-btn",
+			title,
+			attr: { "aria-label": title },
+		});
 		setIcon(btn, icon);
 		btn.addEventListener("click", (e) => {
 			e.stopPropagation();
@@ -317,8 +317,7 @@ export class MermaidLuminaLightbox {
 		if (!this.stage || !this.content) return;
 
 		// Hug-content: do not force a fixed canvas box (avoids letterboxed white gaps)
-		this.content.style.width = "";
-		this.content.style.height = "";
+		this.content.setCssStyles({ width: "", height: "" });
 		this.state = { scale: 1, tx: 0, ty: 0 };
 		this.applyTransform();
 
@@ -378,7 +377,9 @@ export class MermaidLuminaLightbox {
 	private applyTransform(): void {
 		if (!this.content) return;
 		const { scale, tx, ty } = this.state;
-		this.content.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+		this.content.setCssStyles({
+			transform: `translate(${tx}px, ${ty}px) scale(${scale})`,
+		});
 		this.syncZoomInput();
 	}
 }

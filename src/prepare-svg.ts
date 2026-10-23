@@ -2,6 +2,8 @@
  * Prepare a Mermaid SVG for lightbox display: white canvas + readable light colors.
  */
 
+import "obsidian";
+
 /** Paint/text props that are safe to bake. Skip font-size/family: computed
  *  values are CSS pixels from the in-note scale and clip labels in the lightbox. */
 const STYLE_PROPS = [
@@ -96,7 +98,7 @@ export function cloneWithInlinedStyles(source: SVGSVGElement): SVGSVGElement {
 		for (const prop of STYLE_PROPS) {
 			const value = cs.getPropertyValue(prop);
 			if (isUselessValue(value)) continue;
-			if (dst instanceof SVGElement) {
+			if (dst.instanceOf(SVGElement)) {
 				try {
 					dst.setAttribute(prop, value.trim());
 				} catch {
@@ -106,10 +108,12 @@ export function cloneWithInlinedStyles(source: SVGSVGElement): SVGSVGElement {
 		}
 
 		// foreignObject HTML labels — keep original font-size/family (user units)
-		if (src instanceof HTMLElement && dst instanceof HTMLElement) {
-			dst.style.color = cs.color;
-			dst.style.fontWeight = cs.fontWeight;
-			dst.style.backgroundColor = cs.backgroundColor;
+		if (src?.instanceOf(HTMLElement) && dst?.instanceOf(HTMLElement)) {
+			dst.setCssStyles({
+				color: cs.color,
+				fontWeight: cs.fontWeight,
+				backgroundColor: cs.backgroundColor,
+			});
 		}
 	}
 
@@ -119,11 +123,8 @@ export function cloneWithInlinedStyles(source: SVGSVGElement): SVGSVGElement {
 }
 
 function applyLightThemeVars(svg: SVGSVGElement): void {
-	for (const [key, value] of Object.entries(LIGHT_THEME_VARS)) {
-		svg.style.setProperty(key, value);
-	}
-	svg.style.color = "#333333";
-	svg.style.background = "#ffffff";
+	svg.setCssProps(LIGHT_THEME_VARS);
+	svg.setCssStyles({ color: "#333333", background: "#ffffff" });
 }
 
 const VIEWBOX_PAD = 8;
@@ -156,21 +157,19 @@ function isPercentSize(raw: string | null): boolean {
 function measureMermaidSize(svg: SVGSVGElement): SvgBounds {
 	const attrW = parseLength(svg.getAttribute("width"));
 	const attrH = parseLength(svg.getAttribute("height"));
-	const vb = svg.viewBox?.baseVal;
-	const hasViewBox = Boolean(vb && vb.width > 0 && vb.height > 0);
+	const viewBox = svg.viewBox?.baseVal;
+	const box =
+		viewBox && viewBox.width > 0 && viewBox.height > 0
+			? { x: viewBox.x, y: viewBox.y, width: viewBox.width, height: viewBox.height }
+			: null;
 	const percentSized =
 		isPercentSize(svg.getAttribute("width")) ||
 		isPercentSize(svg.getAttribute("height"));
 
-	if (hasViewBox && !percentSized) {
-		return { x: vb!.x, y: vb!.y, width: vb!.width, height: vb!.height };
-	}
+	if (box && !percentSized) return box;
 
 	if (attrW && attrH && !percentSized) {
-		if (hasViewBox) {
-			return { x: vb!.x, y: vb!.y, width: vb!.width, height: vb!.height };
-		}
-		return { x: 0, y: 0, width: attrW, height: attrH };
+		return box ?? { x: 0, y: 0, width: attrW, height: attrH };
 	}
 
 	// Percentage width/height (or missing sizes): content bounds via getBBox
@@ -188,9 +187,7 @@ function measureMermaidSize(svg: SVGSVGElement): SvgBounds {
 		/* not in DOM / empty */
 	}
 
-	if (hasViewBox) {
-		return { x: vb!.x, y: vb!.y, width: vb!.width, height: vb!.height };
-	}
+	if (box) return box;
 
 	if (attrW && attrH) {
 		return { x: 0, y: 0, width: attrW, height: attrH };
@@ -236,11 +233,9 @@ export function normalizeSvgSizing(
 	target.removeAttribute("width");
 	target.removeAttribute("height");
 	target.setAttribute("preserveAspectRatio", "xMidYMid meet");
+	target.classList.add("mermaid-lumina-sized");
 	target.style.width = `${width}px`;
 	target.style.height = `${height}px`;
-	target.style.maxWidth = "none";
-	target.style.maxHeight = "none";
-	target.style.display = "block";
 	return { width, height };
 }
 
@@ -382,8 +377,8 @@ export async function prepareMermaidForLightbox(
 		}
 	}
 
-	const clone = cloneWithInlinedStyles(existingSvg as SVGSVGElement);
-	const size = normalizeSvgSizing(clone, existingSvg as SVGSVGElement);
+	const clone = cloneWithInlinedStyles(existingSvg);
+	const size = normalizeSvgSizing(clone, existingSvg);
 	return { svg: clone, ...size };
 }
 
@@ -436,13 +431,12 @@ async function renderLightMermaid(
 	document.getElementById(id)?.remove();
 	document.getElementById(`d${id}`)?.remove();
 
-	return svg as SVGSVGElement;
+	return svg;
 }
 
 /** Wrap prepared SVG in a white panel for the lightbox stage. */
 export function wrapInWhiteCanvas(svg: SVGSVGElement): HTMLElement {
-	const panel = document.createElement("div");
-	panel.className = "mermaid-lumina-canvas";
+	const panel = createDiv({ cls: "mermaid-lumina-canvas" });
 	panel.appendChild(svg);
 	return panel;
 }

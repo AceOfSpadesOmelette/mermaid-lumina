@@ -26,9 +26,7 @@ export function applyImportedSettings<T extends object>(target: T, next: T): voi
 export function downloadSettingsJson(settings: unknown, filename: string): void {
 	const blob = new Blob([settingsToJson(settings)], { type: "application/json" });
 	const url = URL.createObjectURL(blob);
-	const link = document.createElement("a");
-	link.href = url;
-	link.download = filename;
+	const link = createEl("a", { href: url, attr: { download: filename } });
 	link.click();
 	URL.revokeObjectURL(url);
 }
@@ -78,10 +76,11 @@ export function mountSettingsFileControls<T extends object>(
 		);
 }
 
-function pickSettingsFile(onText: (text: string) => void): void {
-	const input = document.createElement("input");
-	input.type = "file";
-	input.accept = ".json,application/json";
+export function pickSettingsFile(onText: (text: string) => void): void {
+	const input = createEl("input", {
+		type: "file",
+		attr: { accept: ".json,application/json" },
+	});
 	input.addEventListener("change", () => {
 		const file = input.files?.[0];
 		if (!file) return;

@@ -1,13 +1,19 @@
 import {
 	App,
 	MarkdownPostProcessorContext,
+	Notice,
 	Plugin,
 	PluginSettingTab,
-	Setting,
 	setIcon,
+	type SettingDefinitionItem,
 } from "obsidian";
 import { MermaidLuminaLightbox } from "./lightbox";
-import { applyImportedSettings, mountSettingsFileControls } from "./settings-io";
+import {
+	applyImportedSettings,
+	downloadSettingsJson,
+	parseSettingsJson,
+	pickSettingsFile,
+} from "./settings-io";
 import {
 	DEFAULT_SETTINGS,
 	normalizeSettings,
@@ -20,6 +26,7 @@ const READING_SELECTOR = ".markdown-preview-view, .markdown-reading-view";
 const SOURCE_ATTR = "data-lumina-source";
 const ZOOM_BTN_CLASS = "mermaid-lumina-zoom-btn";
 const TOOLBAR_CLASS = "mermaid-lumina-toolbar";
+const TOOLBAR_HOST_CLASS = "mermaid-lumina-has-toolbar";
 const LIVE_PREVIEW_CLASS = "mermaid-lumina-live-preview";
 const EMBED_HOST_SELECTOR = ".cm-embed-block, .cm-preview-code-block";
 
@@ -80,7 +87,7 @@ export default class MermaidLuminaPlugin extends Plugin {
 		this.queueDecorateAll();
 	}
 
-	private applyLivePreviewClass(): void {
+	applyLivePreviewClass(): void {
 		document.body.classList.toggle(LIVE_PREVIEW_CLASS, this.settings.enableLivePreview);
 	}
 
@@ -97,29 +104,27 @@ export default class MermaidLuminaPlugin extends Plugin {
 		const blocks = root.querySelectorAll?.(".mermaid");
 		if (!blocks) return;
 		for (const block of Array.from(blocks)) {
-			this.ensureZoomButton(block as HTMLElement);
+			if (!block.instanceOf(HTMLElement)) continue;
+			this.ensureZoomButton(block);
 		}
 	}
 
 	private ensureZoomButton(mermaidEl: HTMLElement): void {
 		if (!mermaidEl.querySelector("svg")) return;
 
-		const host =
-			(mermaidEl.closest(EMBED_HOST_SELECTOR) as HTMLElement | null) ?? mermaidEl;
+		const embedded = mermaidEl.closest(EMBED_HOST_SELECTOR);
+		const host = embedded?.instanceOf(HTMLElement) ? embedded : mermaidEl;
 
 		if (!this.isEligibleMermaid(mermaidEl)) {
 			this.removeZoomChrome(host);
 			return;
 		}
 
-		if (getComputedStyle(host).position === "static") {
-			host.style.position = "relative";
-		}
+		host.addClass(TOOLBAR_HOST_CLASS);
 
-		let toolbar = host.querySelector(`:scope > .${TOOLBAR_CLASS}`) as HTMLElement | null;
-		if (!toolbar) {
-			toolbar = document.createElement("div");
-			toolbar.className = TOOLBAR_CLASS;
+		let toolbar = host.querySelector(`:scope > .${TOOLBAR_CLASS}`);
+		if (!toolbar?.instanceOf(HTMLElement)) {
+			toolbar = createDiv({ cls: TOOLBAR_CLASS });
 			const existingEdit = host.querySelector(":scope > .edit-block-button");
 			if (existingEdit) {
 				existingEdit.before(toolbar);
@@ -128,22 +133,24 @@ export default class MermaidLuminaPlugin extends Plugin {
 			}
 		}
 
-		let zoomBtn = toolbar.querySelector(`:scope > .${ZOOM_BTN_CLASS}`) as HTMLButtonElement | null;
-		if (!zoomBtn) {
-			zoomBtn = document.createElement("button");
-			zoomBtn.type = "button";
-			zoomBtn.className = `${ZOOM_BTN_CLASS} clickable-icon`;
-			zoomBtn.title = "Open Mermaid lightbox";
-			zoomBtn.setAttribute("aria-label", "Open Mermaid lightbox");
-			setIcon(zoomBtn, "zoom-in");
-			zoomBtn.addEventListener("click", (evt) => {
+		let zoomBtn = toolbar.querySelector(`:scope > .${ZOOM_BTN_CLASS}`);
+		if (!zoomBtn?.instanceOf(HTMLButtonElement)) {
+			const button = createEl("button", {
+				type: "button",
+				cls: `${ZOOM_BTN_CLASS} clickable-icon`,
+				title: "Open Mermaid lightbox",
+				attr: { "aria-label": "Open Mermaid lightbox" },
+			});
+			setIcon(button, "zoom-in");
+			button.addEventListener("click", (evt) => {
 				evt.preventDefault();
 				evt.stopPropagation();
 				if (this.isEligibleMermaid(mermaidEl)) {
 					void this.lightbox.open(mermaidEl);
 				}
 			});
-			toolbar.insertBefore(zoomBtn, toolbar.firstChild);
+			toolbar.insertBefore(button, toolbar.firstChild);
+			zoomBtn = button;
 		}
 
 		const editBtn = host.querySelector(".edit-block-button");
@@ -155,6 +162,7 @@ export default class MermaidLuminaPlugin extends Plugin {
 	private removeZoomChrome(host: HTMLElement): void {
 		const toolbar = host.querySelector(`:scope > .${TOOLBAR_CLASS}`);
 		if (!toolbar) {
+			host.removeClass(TOOLBAR_HOST_CLASS);
 			host.querySelector(`:scope > .${ZOOM_BTN_CLASS}`)?.remove();
 			return;
 		}
@@ -163,6 +171,7 @@ export default class MermaidLuminaPlugin extends Plugin {
 			toolbar.before(editBtn);
 		}
 		toolbar.remove();
+		host.removeClass(TOOLBAR_HOST_CLASS);
 	}
 
 	private annotateMermaidSources(
@@ -172,7 +181,8 @@ export default class MermaidLuminaPlugin extends Plugin {
 		const sectionSource = mermaidSourceFromSection(ctx?.getSectionInfo(root)?.text);
 		const blocks = root.querySelectorAll(".mermaid");
 		for (const block of Array.from(blocks)) {
-			const el = block as HTMLElement;
+			if (!block.instanceOf(HTMLElement)) continue;
+			const el = block;
 			if (el.getAttribute(SOURCE_ATTR)) continue;
 
 			const source =
@@ -190,20 +200,22 @@ export default class MermaidLuminaPlugin extends Plugin {
 	private onDocumentClick(evt: MouseEvent): void {
 		if (this.lightbox.isOpen) return;
 
-		const target = evt.target;
-		if (!(target instanceof Element)) return;
+		const target = evt.targetNode;
+		if (!target?.instanceOf(Element)) return;
 
 		const zoomBtn = target.closest(`.${ZOOM_BTN_CLASS}`);
 		if (zoomBtn) {
-			const host = zoomBtn.closest(`${EMBED_HOST_SELECTOR}, .mermaid`) as HTMLElement | null;
+			const host = zoomBtn.closest(`${EMBED_HOST_SELECTOR}, .mermaid`);
 			let mermaidEl: HTMLElement | null = null;
-			if (host?.matches(".mermaid")) {
+			if (host?.instanceOf(HTMLElement) && host.matches(".mermaid")) {
 				mermaidEl = host;
 			} else if (host) {
-				mermaidEl = host.querySelector(".mermaid");
+				const nested = host.querySelector(".mermaid");
+				mermaidEl = nested?.instanceOf(HTMLElement) ? nested : null;
 			}
 			if (!mermaidEl) {
-				mermaidEl = zoomBtn.closest(".mermaid");
+				const closestMermaid = zoomBtn.closest(".mermaid");
+				mermaidEl = closestMermaid?.instanceOf(HTMLElement) ? closestMermaid : null;
 			}
 			if (
 				mermaidEl?.querySelector("svg") &&
@@ -220,7 +232,8 @@ export default class MermaidLuminaPlugin extends Plugin {
 			return;
 		}
 
-		const mermaidEl = target.closest(".mermaid") as HTMLElement | null;
+		const diagram = target.closest(".mermaid");
+		const mermaidEl = diagram?.instanceOf(HTMLElement) ? diagram : null;
 		if (
 			mermaidEl?.querySelector("svg") &&
 			this.isEligibleMermaid(mermaidEl)
@@ -249,35 +262,59 @@ class MermaidLuminaSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
-	display(): void {
-		const { containerEl } = this;
-		containerEl.empty();
-		containerEl.createEl("h2", { text: "Mermaid Lumina" });
+	override async setControlValue(key: string, value: unknown): Promise<void> {
+		await super.setControlValue(key, value);
+		if (key === "enableLivePreview") this.plugin.applyLivePreviewClass();
+	}
 
-		new Setting(containerEl)
-			.setName("Enable in Live Preview (editing mode)")
-			.setDesc(
-				"When on, rendered Mermaid diagrams in Live Preview show a zoom-in cursor and a top-right magnify button, and clicking opens the lightbox (same idea as images). Reading view is always enabled.",
-			)
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.enableLivePreview)
-					.onChange(async (value) => {
-						this.plugin.settings.enableLivePreview = value;
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		mountSettingsFileControls(containerEl, {
-			filename: "mermaid-lumina-settings.json",
-			pluginName: "Mermaid Lumina",
-			getSettings: () => this.plugin.settings,
-			normalize: normalizeSettings,
-			onImported: async (next) => {
-				applyImportedSettings(this.plugin.settings, next);
-				await this.plugin.saveSettings();
-				this.display();
+	override getSettingDefinitions(): SettingDefinitionItem[] {
+		return [
+			{
+				name: "Enable in Live Preview (editing mode)",
+				desc: "When on, rendered Mermaid diagrams in Live Preview show a zoom-in cursor and a top-right magnify button, and clicking opens the lightbox (same idea as images). Reading view is always enabled.",
+				control: { type: "toggle", key: "enableLivePreview" },
 			},
+			{
+				type: "group",
+				heading: "Backup",
+				items: [
+					{
+						name: "Export settings",
+						desc: "Download the current configuration as JSON.",
+						action: () => {
+							downloadSettingsJson(this.plugin.settings, "mermaid-lumina-settings.json");
+						},
+					},
+					{
+						name: "Import settings",
+						desc: "Replace the current configuration from a JSON file.",
+						action: () => {
+							this.importSettings();
+						},
+					},
+				],
+			},
+		];
+	}
+
+	private importSettings(): void {
+		pickSettingsFile((text) => {
+			try {
+				const next = parseSettingsJson(text, normalizeSettings);
+				applyImportedSettings(this.plugin.settings, next);
+				void this.plugin.saveSettings().then(
+					() => {
+						this.plugin.applyLivePreviewClass();
+						this.update();
+						new Notice("Mermaid lumina settings imported");
+					},
+					() => {
+						new Notice("Could not import settings");
+					},
+				);
+			} catch (err) {
+				new Notice(err instanceof Error ? err.message : "Could not import settings");
+			}
 		});
 	}
 }

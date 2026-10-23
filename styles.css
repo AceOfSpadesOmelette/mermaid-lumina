@@ -110,14 +110,14 @@ body.mermaid-lumina-open {
 .mermaid-lumina-canvas svg foreignObject span,
 .mermaid-lumina-canvas svg foreignObject p {
 	color: inherit;
-	overflow: visible !important;
+	overflow: visible;
 }
 
 .mermaid-lumina-canvas .nodeLabel,
 .mermaid-lumina-canvas .edgeLabel,
 .mermaid-lumina-canvas .label,
 .mermaid-lumina-canvas .labelBkg {
-	overflow: visible !important;
+	overflow: visible;
 }
 
 .mermaid-lumina-controls {
@@ -204,7 +204,7 @@ body.mermaid-lumina-open {
 	font-size: 13px;
 	font-weight: 600;
 	font-variant-numeric: tabular-nums;
-	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	font-family: SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 	color: #e0e0e0;
 	outline: none;
 	overflow: visible;
@@ -242,9 +242,9 @@ body.mermaid-lumina-live-preview .markdown-source-view .mermaid {
 }
 
 /* Hosts for the on-diagram toolbar (Live Preview embed chrome) */
-.cm-embed-block.cm-embed-block:has(> .mermaid-lumina-toolbar),
-.cm-preview-code-block:has(> .mermaid-lumina-toolbar),
-.mermaid:has(> .mermaid-lumina-toolbar) {
+.workspace-leaf-content .cm-embed-block.mermaid-lumina-has-toolbar,
+.workspace-leaf-content .cm-preview-code-block.mermaid-lumina-has-toolbar,
+.workspace-leaf-content .mermaid.mermaid-lumina-has-toolbar {
 	position: relative;
 }
 
@@ -281,11 +281,11 @@ body.mermaid-lumina-live-preview .markdown-source-view .mermaid {
 }
 
 /* Keep Obsidian's edit button in the flex row (not absolutely pinned elsewhere) */
-.mermaid-lumina-toolbar .edit-block-button {
-	position: static !important;
-	top: auto !important;
-	right: auto !important;
-	inset: auto !important;
+.workspace-leaf-content .mermaid-lumina-toolbar .edit-block-button {
+	position: static;
+	top: auto;
+	right: auto;
+	inset: auto;
 	opacity: 1;
 }
 
@@ -376,4 +376,10 @@ body.mermaid-lumina-live-preview .markdown-source-view .mermaid {
 		height: 40px;
 		font-size: 14px;
 	}
+}
+
+.mermaid-lumina-sized {
+	display: block;
+	max-width: none;
+	max-height: none;
 }
