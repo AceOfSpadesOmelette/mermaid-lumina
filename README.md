@@ -20,3 +20,11 @@ Open **Settings → Mermaid Lumina**.
 **Enable in Live Preview (editing mode)** opens the lightbox from a diagram while you are editing. Leave it off to keep Obsidian’s click-to-edit behavior.
 
 Under **Backup**, **Export settings** and **Import settings** save or restore that configuration as `mermaid-lumina-settings.json`.
+
+## Support
+
+[![Buy Me a Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://buymeacoffee.com/aceofspadesomelette)
+
+## Star history
+
+[![Star History Chart](https://api.star-history.com/svg?repos=AceOfSpadesOmelette/mermaid-lumina&type=Date)](https://www.star-history.com/#AceOfSpadesOmelette/mermaid-lumina&Date)
